@@ -1,3 +1,16 @@
+<!-- 
+    Webpage for "historicly correct" radar graphics
+        by Pim de Vroom
+        sources used:
+            - https://www.tutorialspoint.com/webgl/
+              For general code to run shader graphics
+            - http://glslsandbox.com/e#41606.0
+              code by Twareintor (2017) - copyright (c) 2017 Claudiu Ciutacu
+              mailto: ciutacu /d] gmail * com
+              For fragment shader graphics
+
+-->
+
 <!doctype html>
 <html>
     <head>
@@ -67,8 +80,8 @@
                 #define RADIUS 300. // 
                 #define DECAY .975 // max.0.98
                 #define GRIDON true // 
-                #define DIRECTION 1. // 1. (right) or -1. 
-                #define TRAVELSPEED 10.
+                //#define DIRECTION 1. // 1. (right) or -1. //No longer relevant since direction changes each 180 degree turn
+                #define TRAVELSPEED 5.
                 #define OBSTACLESIZE .24 // reasonable???
                             
                 uniform float time;
@@ -119,15 +132,17 @@
                 {
                     float t = time;
                     vec2 cen = resolution.xy/2.0;
+                    cen.y -= resolution.y /4.;
                     vec2 enem = cen+vec2(mouse.x, mouse.y)*RADIUS;
                     float r = .0;
                     float g = .0;
                     float b = .0;
                     vec2 f = gl_FragCoord.xy-cen;
-                    if(length(f)<RADIUS)
+                    
+                    if(length(f)<RADIUS && gl_FragCoord.y > cen.y)
                     {
                         /** the trace is green... */
-                        g = f.x/length(f)*cos(t)+f.y/length(f)*sin(t)*DIRECTION;
+                        g = -f.x/length(f)*cos(t)+ f.y/length(f)*abs(sin(t)) ;
                         g*=1.0-length(f)/RADIUS/128.9;
                         g = pow(g, 45.*DECAY);
                         g-=(SPOT-length(gl_FragCoord.xy-enem))*float((length(gl_FragCoord.xy-enem)<SPOT));
@@ -140,14 +155,13 @@
                         r=.1; g=.1; b=.1;
                     }
                     vec4 outColor = vec4(r, g, b, 1.0);
-                    /**   */
                     float grid, grid2;
-                    if(GRIDON)	/** the grid  */
+                    if(GRIDON && gl_FragCoord.y > cen.y)	/** the grid  */
                     {
                         grid = circleA(vec3(cen, 0.), RADIUS+1., 1.35);
                         grid+=circleA(vec3(cen, 0.), RADIUS/2., .31);
                         grid+=circleA(vec3(cen, 0.), RADIUS/4., .21);
-                    grid+=circleA(vec3(cen, 0.), RADIUS*3./4., .21);
+                        grid+=circleA(vec3(cen, 0.), RADIUS*3./4., .21);
                         for(int i=0; i<8; i++)
                         {
                             float phase = 2.*PI/8.*float(i);
@@ -160,8 +174,8 @@
                             grid2+=segment(p0, p1, 3.75, false);                        
                         }                    
                     }
-                    outColor = vec4(mix(grid, grid2, 0.15), g, 0., 1.0);
-                    gl_FragColor = outColor;            
+                    outColor = vec4(mix(0.7 * grid, grid2, 0.15), g, 0., 1.0);
+                    gl_FragColor = outColor;
                 }
             `;
     
