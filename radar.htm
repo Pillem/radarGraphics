@@ -77,7 +77,7 @@
                 #define PI 3.14159265359            
                 #define SPOT 7.
                 #define OMEGA 0.42 	// 
-                #define RADIUS 300. // 
+                #define RADIUS 500. // 
                 #define DECAY .975 // max.0.98
                 #define GRIDON true // 
                 //#define DIRECTION 1. // 1. (right) or -1. //No longer relevant since direction changes each 180 degree turn
@@ -132,7 +132,7 @@
                 {
                     float t = time;
                     vec2 cen = resolution.xy/2.0;
-                    cen.y -= resolution.y /4.;
+                    cen.y -= resolution.y /3.;
                     vec2 enem = cen+vec2(mouse.x, mouse.y)*RADIUS;
                     float r = .0;
                     float g = .0;
