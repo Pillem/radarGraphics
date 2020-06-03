@@ -250,7 +250,13 @@
                 gl.uniform1f( time, tim / 10000 );
                 gl.uniform2f( mouse, 13, 64 );
                 gl.uniform2f( resolution, canvas.width, canvas.height );
-                var contacts =  [-10.0,5.0,1.0,1.0,-1.]; 
+                var contacts =  [
+                                    -10.0   ,5.0    ,1.0    ,1.0,
+                                    -10.1   ,5.1  ,1.0    ,1.0,
+                                    -9.99   ,5.2  ,1.0    ,1.0,
+                                    -10.0   ,5.0    ,1.0    ,1.0,
+                                    -1.
+                                ]; 
                 /*  4 values per contact:
                         x (left or right for the radar)
                         y (how far away from radar when radar is looking straight out)
