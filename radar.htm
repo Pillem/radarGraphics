@@ -1,7 +1,7 @@
 <!-- 
     Webpage for "historicly correct" radar graphics
         by Pim de Vroom
-        sources used:
+        code sources used:
             - https://www.tutorialspoint.com/webgl/
               For general code to run shader graphics
             - http://glslsandbox.com/e#41606.0
@@ -48,6 +48,8 @@
     
             indices = [3,2,1,3,1,0];
     
+          
+    
             // Create and store data into vertex buffer
             var vertex_buffer = gl.createBuffer ();
             gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
@@ -56,6 +58,12 @@
             var index_buffer = gl.createBuffer ();
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+            
+            //Create and store contacts data in buffer
+            //var contacts_buffer = gl.createBuffer();
+            //gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, contacts_buffer);
+            //gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Float32Array(contacts), gl.STATIC_DRAW);
+            
             
             /*=================== Shaders =========================*/
     
@@ -77,7 +85,7 @@
                 #define PI 3.14159265359            
                 #define SPOT 7.
                 #define OMEGA 0.42 	// 
-                #define RADIUS 500. // 
+                #define RADIUS 550. // 
                 #define DECAY .975 // max.0.98
                 #define GRIDON true // 
                 //#define DIRECTION 1. // 1. (right) or -1. //No longer relevant since direction changes each 180 degree turn
@@ -87,6 +95,9 @@
                 uniform float time;
                 uniform vec2 mouse;
                 uniform vec2 resolution;
+                uniform float contactPositions[400];
+                
+                //layout(std140, binding = 2) uniform contactPositions { ... };
                 
                 float circleA(vec3 p0, float rad, float size)
                 {
@@ -127,9 +138,23 @@
                 }            
                 float perlin(vec2 n) {  
                     return noise(n/32.)*0.5875+noise(n/16.)/5.+noise(n/8.)/10.+noise(n/4.)/20.+noise(n/2.)/40.+noise(n)/80.;
-                }            
+                }
+                bool inrange(float a, float b, float wingspanBonus){
+                    return abs(a - b) < wingspanBonus;
+                }
+                
+
+                float contactOnLocation(vec2 n){
+                    for(int i = 0; i < 400; i++){
+                        if(contactPositions[4*i] == -1.) return 0.;
+                        if(inrange(n.x, contactPositions[4 * i] * RADIUS/40., contactPositions[3 + 4 * i]) && inrange(n.y, contactPositions[1 + 4 * i] * RADIUS/40., contactPositions[3 + 4 * i])){// || n.x > contactPositions[1] * RADIUS/40.){
+                            return 1.;
+                        }
+                    }
+                }
                 void main() 
                 {
+                    
                     float t = time;
                     vec2 cen = resolution.xy/2.0;
                     cen.y -= resolution.y /3.;
@@ -147,8 +172,9 @@
                         g = pow(g, 45.*DECAY);
                         g-=(SPOT-length(gl_FragCoord.xy-enem))*float((length(gl_FragCoord.xy-enem)<SPOT));
                         g+=point(vec3(cen, 0.), 4.);
-                        float map = float(perlin(vec2(gl_FragCoord.x, gl_FragCoord.y+time*TRAVELSPEED))>(1.-OBSTACLESIZE));
+                        float map = contactOnLocation(vec2(f.x, f.y));//float(perlin(vec2(gl_FragCoord.x, gl_FragCoord.y+time*TRAVELSPEED))>(1.-OBSTACLESIZE));
                         g-=map;
+                        
                     }
                     else
                     {
@@ -196,11 +222,11 @@
             var time = gl.getUniformLocation(shaderProgram, "time");
             var mouse = gl.getUniformLocation(shaderProgram, "mouse");
             var resolution = gl.getUniformLocation(shaderProgram, "resolution");
-            
-    
+            var contactPositions = gl.getUniformLocation(shaderProgram, "contactPositions");
             gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+            //gl.bindBuffer(gl.ARRAY_BUFFER, contacts_buffer);
             var position = gl.getAttribLocation(shaderProgram, "position");
-            gl.vertexAttribPointer(position, 3, gl.FLOAT, false,0,0) ;
+            gl.vertexAttribPointer(position, 3, gl.FLOAT, false,0,0);
     
             // Position
             gl.enableVertexAttribArray(position);
@@ -210,7 +236,7 @@
             /*================= Drawing ===========================*/
             var time_old = 0;
     
-            var animate = function(tim) {
+            var animate = function(tim,pr) {
                 var dt = tim-time_old;
                 time_old = tim;
         
@@ -221,15 +247,26 @@
         
                 gl.viewport(0.0, 0.0, canvas.width, canvas.height);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-                gl.uniform1f( time, tim / 5000 );
+                gl.uniform1f( time, tim / 10000 );
                 gl.uniform2f( mouse, 13, 64 );
                 gl.uniform2f( resolution, canvas.width, canvas.height );
+                var contacts =  [-10.0,5.0,1.0,1.0,-1.]; 
+                /*  4 values per contact:
+                        x (left or right for the radar)
+                        y (how far away from radar when radar is looking straight out)
+                        z (altitude which is not used yet...)
+                        q (wingspan which changes how big the contact is showed on the radar)
+                    Make sure to end the array with a "-1" for early exit loop.
+                */
+                gl.uniform1fv(contactPositions, new Float32Array(contacts));
+                
+                
                 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
                 gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
         
                 window.requestAnimationFrame(animate);
             }
-            animate(0);
+            animate(0, shaderProgram);
             function resizeCanvas(e) {
                 
                 canvas.width = document.documentElement.clientWidth;
